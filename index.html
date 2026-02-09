@@ -57,7 +57,7 @@
             }
         }
 
-        /* 3. 엔진 진동 (1px, 1deg 미세 조정 유지) */
+        /* 3. 엔진 진동 */
         @keyframes engineShake {
             0% {
                 transform: translateY(0) rotate(0deg);
@@ -72,7 +72,7 @@
             }
 
             75% {
-                transform: translateY(1px) rotate(1deg);
+                transform: translateY(-1px) rotate(-1deg);
             }
 
             100% {
@@ -122,19 +122,53 @@
             border: none;
         }
 
+        /* [PC 기본 스타일] */
         .character-container {
             position: absolute;
             bottom: 0;
             width: 90px;
+            /* PC에서는 큼직하게 */
             height: auto;
             display: flex;
             flex-direction: column;
             align-items: center;
             cursor: pointer;
-
-            /* 상승 움직임: 3초 */
             transition: bottom 3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             will-change: bottom;
+        }
+
+        /* =========================================
+           [핵심 수정] 모바일 전용 스타일 (반응형)
+           화면이 768px 이하(핸드폰)일 때만 적용됨
+           ========================================= */
+        @media (max-width: 768px) {
+            .character-container {
+                /* 화면 너비의 9.5%로 줄임 (10명이 딱 들어감) */
+                width: 9.5vw;
+            }
+
+            /* 이름표 글씨 크기 줄이기 */
+            .item-name {
+                font-size: 0.7rem !important;
+            }
+
+            .vote-count {
+                font-size: 1rem !important;
+            }
+
+            .info-box {
+                padding: 2px 4px !important;
+                border-radius: 5px !important;
+            }
+
+            /* [꿀팁] 짝수 번째 아이템은 이름표를 위로 올려서 겹침 방지 (지그재그) */
+            .track:nth-child(even) .info-box {
+                transform: translateY(-15px);
+            }
+
+            .track:nth-child(odd) .info-box {
+                transform: translateY(0px);
+            }
         }
 
         .character-motion-wrapper {
@@ -142,7 +176,6 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            /* 평소엔 엔진 진동 */
             animation: engineShake 0.4s linear infinite;
         }
 
@@ -156,6 +189,8 @@
             filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.6));
             z-index: 20;
             -webkit-user-drag: none;
+            /* 흰 배경 제거 (혹시 몰라 넣어둠) */
+            mix-blend-mode: multiply;
         }
 
         .info-box {
@@ -179,6 +214,8 @@
             color: #ffd700;
             margin-bottom: 2px;
             text-shadow: 1px 1px 0 #000;
+            white-space: nowrap;
+            /* 줄바꿈 방지 */
         }
 
         .vote-count {
@@ -362,7 +399,10 @@
             try {
                 const separator = SHEET_URL.includes('?') ? '&' : '?';
                 const urlWithCache = `${SHEET_URL}${separator}t=${Date.now()}`;
-                const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(urlWithCache);
+
+                // [수정 완료] corsproxy.io (차단됨) -> api.allorigins.win (정상 작동)
+                // 이곳을 바꿔야 투표 카운트가 정상적으로 올라갑니다.
+                const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(urlWithCache);
 
                 const response = await fetch(proxyUrl);
                 if (!response.ok) throw new Error("네트워크 응답 오류");
