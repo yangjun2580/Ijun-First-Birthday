@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>슈퍼맨 이준이의 하이퍼 스페이스 레이스</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --track-count: 10;
+        }
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Jua', sans-serif;
+            background-color: #000;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* 1. 밝고 넓은 우주 배경 */
+        .background {
+            width: 100%;
+            height: 100vh;
+            background: radial-gradient(ellipse at center, #2b4162 0%, #121723 100%);
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            overflow: hidden;
+        }
+
+        /* 2. 쏟아지는 별 */
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            opacity: 0.9;
+            pointer-events: none;
+        }
+
+        @keyframes starFall {
+            from {
+                transform: translateY(-100px);
+            }
+
+            to {
+                transform: translateY(110vh);
+            }
+        }
+
+        /* 3. 엔진 진동 (1px, 1deg 미세 조정 유지) */
+        @keyframes engineShake {
+            0% {
+                transform: translateY(0) rotate(0deg);
+            }
+
+            25% {
+                transform: translateY(1px) rotate(1deg);
+            }
+
+            50% {
+                transform: translateY(0) rotate(0deg);
+            }
+
+            75% {
+                transform: translateY(1px) rotate(1deg);
+            }
+
+            100% {
+                transform: translateY(0) rotate(0deg);
+            }
+        }
+
+        /* 4. 타격감 애니메이션 */
+        @keyframes hitRecoil {
+            0% {
+                transform: scale(1) translateY(0);
+            }
+
+            20% {
+                transform: scale(0.8) translateY(120px) rotate(-5deg);
+                filter: brightness(3) drop-shadow(0 0 20px red);
+            }
+
+            60% {
+                transform: scale(0.95) translateY(-15px) rotate(2deg);
+                filter: brightness(1);
+            }
+
+            100% {
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .track-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            justify-content: space-around;
+            align-items: flex-end;
+            padding-bottom: 30px;
+            box-sizing: border-box;
+            z-index: 10;
+            padding-top: 50px;
+        }
+
+        .track {
+            position: relative;
+            flex: 1;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            border: none;
+        }
+
+        .character-container {
+            position: absolute;
+            bottom: 0;
+            width: 90px;
+            height: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+
+            /* 상승 움직임: 3초 */
+            transition: bottom 3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            will-change: bottom;
+        }
+
+        .character-motion-wrapper {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /* 평소엔 엔진 진동 */
+            animation: engineShake 0.4s linear infinite;
+        }
+
+        .character-motion-wrapper.hit {
+            animation: hitRecoil 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .character-img {
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.6));
+            z-index: 20;
+            -webkit-user-drag: none;
+        }
+
+        .info-box {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 5px 10px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 5px;
+            border: 2px solid #fff;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+            z-index: 20;
+            transition: transform 0.1s;
+        }
+
+        .character-container:active .info-box {
+            transform: scale(0.9) translateY(5px);
+        }
+
+        .item-name {
+            font-size: 1rem;
+            color: #ffd700;
+            margin-bottom: 2px;
+            text-shadow: 1px 1px 0 #000;
+        }
+
+        .vote-count {
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 2px 2px 0 #ff0000;
+        }
+
+        #loading,
+        #error-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            flex-direction: column;
+            text-align: center;
+        }
+
+        #loading {
+            background: rgba(0, 0, 0, 0.9);
+            color: #ffd700;
+            font-size: 2rem;
+        }
+
+        #error-overlay {
+            background: rgba(0, 0, 0, 0.9);
+            color: #ff6b6b;
+            display: none;
+        }
+
+        #error-overlay button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 1.2rem;
+            border: none;
+            background: #ffd700;
+            color: #000;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="loading">✨ WARP ENGINE 가동 중...</div>
+    <div id="error-overlay">
+        <div class="error-msg" id="error-message-text"></div>
+        <button onclick="location.reload()">RETRY</button>
+    </div>
+
+    <div class="background" id="bg-container">
+        <div class="track-container" id="track-container">
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // [설정] 구글 시트 URL
+        // ==========================================
+        const SHEET_URL = "https://docs.google.com/spreadsheets/d/1gb1qCq8hXQ3gWHfhtWLDtRXtqFcGZUrxg9ZKodIKj2k/export?format=csv&gid=1910093720";
+
+        // [설정] 목표 득표수 10표
+        const GOAL_VOTES = 10;
+
+        const TARGET_ITEMS = [
+            "엽전", "연필", "실", "마우스", "판사봉",
+            "청진기", "마이크", "공", "비행기", "복주머니"
+        ];
+
+        function init() {
+            createStarfield();
+            createTracks();
+            document.getElementById('loading').style.display = 'none';
+
+            fetchData();
+            setInterval(fetchData, 3000);
+        }
+
+        function createStarfield() {
+            const bg = document.getElementById('bg-container');
+            const starCount = 150;
+
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+
+                const x = Math.random() * 100;
+                star.style.left = `${x}%`;
+
+                const type = Math.random();
+                let size, duration, opacity;
+
+                if (type > 0.9) {
+                    size = Math.random() * 3 + 2 + 'px';
+                    duration = Math.random() * 0.5 + 0.3 + 's';
+                    opacity = 1.0;
+                    star.style.height = (Math.random() * 30 + 10) + 'px';
+                } else if (type > 0.6) {
+                    size = Math.random() * 2 + 1 + 'px';
+                    duration = Math.random() * 2 + 1 + 's';
+                    opacity = 0.85;
+                    star.style.height = size;
+                } else {
+                    size = Math.random() * 1.5 + 'px';
+                    duration = Math.random() * 5 + 3 + 's';
+                    opacity = 0.6;
+                    star.style.height = size;
+                }
+
+                star.style.width = size;
+                star.style.opacity = opacity;
+
+                star.style.animation = `starFall ${duration} linear infinite`;
+                star.style.animationDelay = `-${Math.random() * 5}s`;
+
+                bg.appendChild(star);
+            }
+        }
+
+        function createTracks() {
+            const container = document.getElementById('track-container');
+            container.innerHTML = '';
+
+            TARGET_ITEMS.forEach((item, index) => {
+                const track = document.createElement('div');
+                track.className = 'track';
+
+                const charContainer = document.createElement('div');
+                charContainer.className = 'character-container';
+                charContainer.id = `char-${index}`;
+                charContainer.style.bottom = '0%';
+
+                // 클릭 이벤트 연결
+                charContainer.onclick = function () {
+                    const wrapper = this.querySelector('.character-motion-wrapper');
+                    triggerHitEffect(wrapper);
+                };
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'character-motion-wrapper';
+
+                const img = document.createElement('img');
+                img.src = './superman_jun.png';
+                img.alt = item;
+                img.className = 'character-img';
+                img.onerror = function () { this.style.display = 'none'; };
+
+                const info = document.createElement('div');
+                info.className = 'info-box';
+                info.innerHTML = `
+                    <div class="item-name">${item}</div>
+                    <div class="vote-count" id="count-${index}">0</div>
+                `;
+
+                wrapper.appendChild(img);
+                wrapper.appendChild(info);
+                charContainer.appendChild(wrapper);
+                track.appendChild(charContainer);
+                container.appendChild(track);
+            });
+        }
+
+        function triggerHitEffect(element) {
+            if (element.classList.contains('hit')) return;
+
+            element.classList.add('hit');
+            setTimeout(() => {
+                element.classList.remove('hit');
+            }, 500);
+        }
+
+        async function fetchData() {
+            try {
+                const separator = SHEET_URL.includes('?') ? '&' : '?';
+                const urlWithCache = `${SHEET_URL}${separator}t=${Date.now()}`;
+                const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(urlWithCache);
+
+                const response = await fetch(proxyUrl);
+                if (!response.ok) throw new Error("네트워크 응답 오류");
+
+                const csvText = await response.text();
+                if (!csvText || csvText.trim().length === 0) throw new Error("데이터 비어있음");
+
+                const votes = parseCSV(csvText);
+                updateDisplay(votes);
+                hideError();
+
+            } catch (error) {
+                console.error("Fetch Error:", error);
+            }
+        }
+
+        function parseCSV(text) {
+            const rows = text.split(/\r?\n/);
+            const counts = {};
+            TARGET_ITEMS.forEach(i => counts[i] = 0);
+
+            rows.forEach(row => {
+                const cols = row.split(',');
+                if (cols.length >= 2) {
+                    const itemName = cols[0].replace(/^"|"$/g, '').trim();
+                    const voteValue = cols[1].replace(/^"|"$/g, '').trim();
+                    const numVote = parseInt(voteValue, 10);
+
+                    if (counts.hasOwnProperty(itemName) && !isNaN(numVote)) {
+                        counts[itemName] = numVote;
+                    }
+                }
+            });
+            return counts;
+        }
+
+        // [핵심 로직] 0.75승 가중치 적용 (Start Low, Jump High)
+        function updateDisplay(counts) {
+            let currentMax = Math.max(...Object.values(counts));
+
+            // 기준점 (목표 20표)
+            let scaleBase = Math.max(currentMax, GOAL_VOTES);
+
+            TARGET_ITEMS.forEach((item, index) => {
+                const count = counts[item];
+                const charEl = document.getElementById(`char-${index}`);
+                const countEl = document.getElementById(`count-${index}`);
+
+                countEl.innerText = `${count}`;
+
+                // 1. 단순 비율 (0 ~ 1.0)
+                let ratio = count / scaleBase;
+
+                // 2. 2.0승(제곱) 적용:
+                // - 초반(1~3표)은 완만하게 오르다가, 후반(7~10표)으로 갈수록 격차가 커짐
+                // - 상위권 경쟁의 긴장감을 높이는 방식
+                let curvedRatio = Math.pow(ratio, 2.0);
+
+                // 화면 높이의 78%까지만 사용 (상단 여백 확보)
+                const percentage = curvedRatio * 78;
+
+                charEl.style.bottom = `${percentage}%`;
+            });
+        }
+
+        function hideError() {
+            const errEl = document.getElementById('error-overlay');
+            if (errEl.style.display !== 'none') errEl.style.display = 'none';
+        }
+
+        window.addEventListener('load', init);
+    </script>
+</body>
+
+</html>
