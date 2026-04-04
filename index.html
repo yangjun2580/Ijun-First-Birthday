@@ -9,16 +9,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --track-count: 10;
-        }
+        :root { --track-count: 10; }
 
-        body,
-        html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100vh;
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100vh;
             overflow: hidden;
             font-family: 'Jua', sans-serif;
             background-color: #000;
@@ -26,11 +21,10 @@
             -webkit-user-select: none;
         }
 
-        /* 1. 밝고 넓은 우주 배경 */
+        /* ── 우주 배경 ── */
         .background {
-            width: 100%;
-            height: 100vh;
-            background: radial-gradient(ellipse at center, #2b4162 0%, #121723 100%);
+            width: 100%; height: 100vh;
+            background: radial-gradient(ellipse at 50% 80%, #0d1b3e 0%, #050a14 70%, #000 100%);
             position: relative;
             display: flex;
             justify-content: center;
@@ -38,73 +32,46 @@
             overflow: hidden;
         }
 
-        /* 2. 쏟아지는 별 */
+        /* ── 별 ── */
         .star {
             position: absolute;
             background: white;
             border-radius: 50%;
-            opacity: 0.9;
             pointer-events: none;
         }
 
-        @keyframes starFall {
-            from {
-                transform: translateY(-100px);
-            }
-
-            to {
-                transform: translateY(110vh);
-            }
+        @keyframes starFallSlow {
+            from { transform: translateY(-300px); }
+            to   { transform: translateY(110vh); }
+        }
+        @keyframes starFallMid {
+            from { transform: translateY(-300px); }
+            to   { transform: translateY(110vh); }
+        }
+        @keyframes starFallFast {
+            from { transform: translateY(-300px); opacity: 1; }
+            to   { transform: translateY(110vh);  opacity: 0.2; }
         }
 
-        /* 3. 엔진 진동 */
-        @keyframes engineShake {
-            0% {
-                transform: translateY(0) rotate(0deg);
-            }
-
-            25% {
-                transform: translateY(1px) rotate(1deg);
-            }
-
-            50% {
-                transform: translateY(0) rotate(0deg);
-            }
-
-            75% {
-                transform: translateY(-1px) rotate(-1deg);
-            }
-
-            100% {
-                transform: translateY(0) rotate(0deg);
-            }
+        /* ── 스피드 라인 ── */
+        .speed-line {
+            position: absolute;
+            width: 1px;
+            background: linear-gradient(to bottom, transparent, rgba(150, 200, 255, 0.6), transparent);
+            pointer-events: none;
+            border-radius: 2px;
+        }
+        @keyframes speedLineFall {
+            0%   { transform: translateY(-100px); opacity: 0; }
+            10%  { opacity: 1; }
+            90%  { opacity: 0.8; }
+            100% { transform: translateY(110vh); opacity: 0; }
         }
 
-        /* 4. 타격감 애니메이션 */
-        @keyframes hitRecoil {
-            0% {
-                transform: scale(1) translateY(0);
-            }
-
-            20% {
-                transform: scale(0.8) translateY(120px) rotate(-5deg);
-                filter: brightness(3) drop-shadow(0 0 20px red);
-            }
-
-            60% {
-                transform: scale(0.95) translateY(-15px) rotate(2deg);
-                filter: brightness(1);
-            }
-
-            100% {
-                transform: scale(1) translateY(0);
-            }
-        }
-
+        /* ── 트랙 ── */
         .track-container {
             display: flex;
-            width: 100%;
-            height: 100%;
+            width: 100%; height: 100%;
             justify-content: space-around;
             align-items: flex-end;
             padding-bottom: 30px;
@@ -112,126 +79,123 @@
             z-index: 10;
             padding-top: 50px;
         }
-
         .track {
             position: relative;
-            flex: 1;
-            height: 100%;
+            flex: 1; height: 100%;
             display: flex;
             justify-content: center;
-            border: none;
         }
 
-        /* [PC 기본 스타일] */
+        /* ── 캐릭터 컨테이너 ── */
         .character-container {
             position: absolute;
             bottom: 0;
             width: 90px;
-            /* PC에서는 큼직하게 */
-            height: auto;
             display: flex;
             flex-direction: column;
             align-items: center;
             cursor: pointer;
-            transition: bottom 3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            transition: bottom 2.5s cubic-bezier(0.22, 1, 0.36, 1);
             will-change: bottom;
         }
 
-        /* =========================================
-           [핵심 수정] 모바일 전용 스타일 (반응형)
-           화면이 768px 이하(핸드폰)일 때만 적용됨
-           ========================================= */
         @media (max-width: 768px) {
-            .character-container {
-                /* 화면 너비의 9.5%로 줄임 (10명이 딱 들어감) */
-                width: 9.5vw;
-            }
-
-            /* 이름표 글씨 크기 줄이기 */
-            .item-name {
-                font-size: 0.7rem !important;
-            }
-
-            .vote-count {
-                font-size: 1rem !important;
-            }
-
-            .info-box {
-                padding: 2px 4px !important;
-                border-radius: 5px !important;
-            }
-
-            /* [꿀팁] 짝수 번째 아이템은 이름표를 위로 올려서 겹침 방지 (지그재그) */
-            .track:nth-child(even) .info-box {
-                transform: translateY(-15px);
-            }
-
-            .track:nth-child(odd) .info-box {
-                transform: translateY(0px);
-            }
+            .character-container { width: 9.5vw; }
+            .item-name  { font-size: 0.7rem !important; }
+            .vote-count { font-size: 1rem !important; }
+            .info-box   { padding: 2px 4px !important; border-radius: 5px !important; }
+            .track:nth-child(even) .info-box { transform: translateY(-15px) !important; }
         }
 
-        .character-motion-wrapper {
+        /*
+         * 구조:
+         *  character-container
+         *    ├── bob-wrapper      ← 상하 bobbing + hit 효과
+         *    │     └── tilt-wrapper  ← CSS transition으로 기울기 변환
+         *    │           └── character-img
+         *    └── info-box         ← 회전 없음, 항상 정자세
+         */
+
+        /* ── bob-wrapper: 항상 상하 부유 ── */
+        @keyframes floatBob {
+            0%, 100% { transform: translateY(0px); }
+            30%      { transform: translateY(-7px); }
+            70%      { transform: translateY(-4px); }
+        }
+        @keyframes hitRecoil {
+            0%   { transform: translateY(0)    scale(1);    filter: brightness(1); }
+            15%  { transform: translateY(80px) scale(0.75); filter: brightness(4) drop-shadow(0 0 25px #ff4400); }
+            55%  { transform: translateY(-18px) scale(1.05); filter: brightness(1.5) drop-shadow(0 0 15px #ffaa00); }
+            100% { transform: translateY(0)    scale(1);    filter: brightness(1); }
+        }
+
+        .bob-wrapper {
             width: 100%;
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            animation: engineShake 0.4s linear infinite;
+            justify-content: center;
+            animation: floatBob 2.5s ease-in-out infinite;
+            will-change: transform;
+        }
+        .bob-wrapper.hit {
+            animation: hitRecoil 0.65s cubic-bezier(0.25, 1, 0.5, 1) forwards !important;
         }
 
-        .character-motion-wrapper.hit {
-            animation: hitRecoil 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+        /* ── tilt-wrapper: 기울기만 담당, CSS transition으로 부드럽게 ── */
+        .tilt-wrapper {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            transform: rotate(0deg);
+            transition: transform 1.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            /* 약간의 overshoot(spring)으로 자연스러운 이륙감 */
+        }
+        .tilt-wrapper.flying {
+            transform: rotate(-13deg);
         }
 
+        /* ── 이미지 ── */
         .character-img {
             width: 100%;
             height: auto;
-            filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.6));
-            z-index: 20;
+            filter: drop-shadow(0 0 12px rgba(100, 180, 255, 0.7))
+                    drop-shadow(0 0 25px rgba(50, 120, 255, 0.4));
             -webkit-user-drag: none;
-            /* 흰 배경 제거 (혹시 몰라 넣어둠) */
-            mix-blend-mode: multiply;
         }
 
+        /* ── 정보 박스 (회전 없음) ── */
         .info-box {
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 10, 30, 0.85);
             padding: 5px 10px;
             border-radius: 8px;
             text-align: center;
-            margin-top: 5px;
-            border: 2px solid #fff;
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+            margin-top: 6px;
+            border: 2px solid rgba(100, 180, 255, 0.7);
+            box-shadow: 0 0 12px rgba(50, 120, 255, 0.5),
+                        inset 0 0 8px rgba(50, 120, 255, 0.1);
             z-index: 20;
-            transition: transform 0.1s;
         }
-
         .character-container:active .info-box {
             transform: scale(0.9) translateY(5px);
         }
-
         .item-name {
             font-size: 1rem;
             color: #ffd700;
             margin-bottom: 2px;
             text-shadow: 1px 1px 0 #000;
             white-space: nowrap;
-            /* 줄바꿈 방지 */
         }
-
         .vote-count {
             font-size: 1.5rem;
             font-weight: 900;
             color: #fff;
-            text-shadow: 2px 2px 0 #ff0000;
+            text-shadow: 0 0 8px #66aaff, 2px 2px 0 #003399;
         }
 
-        #loading,
-        #error-overlay {
+        /* ── 로딩 / 에러 ── */
+        #loading, #error-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -239,19 +203,16 @@
             flex-direction: column;
             text-align: center;
         }
-
         #loading {
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0,0,0,0.95);
             color: #ffd700;
             font-size: 2rem;
         }
-
         #error-overlay {
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0,0,0,0.9);
             color: #ff6b6b;
             display: none;
         }
-
         #error-overlay button {
             margin-top: 20px;
             padding: 10px 20px;
@@ -267,82 +228,67 @@
 </head>
 
 <body>
-
-    <div id="loading">✨ WARP ENGINE 가동 중...</div>
+    <div id="loading">🚀 WARP ENGINE 가동 중...</div>
     <div id="error-overlay">
-        <div class="error-msg" id="error-message-text"></div>
+        <div id="error-message-text"></div>
         <button onclick="location.reload()">RETRY</button>
     </div>
 
     <div class="background" id="bg-container">
-        <div class="track-container" id="track-container">
-        </div>
+        <div class="track-container" id="track-container"></div>
     </div>
 
     <script>
-        // ==========================================
-        // [설정] 구글 시트 URL
-        // ==========================================
-        const SHEET_URL = "https://docs.google.com/spreadsheets/d/1gb1qCq8hXQ3gWHfhtWLDtRXtqFcGZUrxg9ZKodIKj2k/export?format=csv&gid=1910093720";
-
-        // [설정] 목표 득표수 10표
+        const SHEET_URL  = "https://docs.google.com/spreadsheets/d/1gb1qCq8hXQ3gWHfhtWLDtRXtqFcGZUrxg9ZKodIKj2k/export?format=csv&gid=1910093720";
         const GOAL_VOTES = 10;
-
         const TARGET_ITEMS = [
             "엽전", "연필", "실", "마우스", "판사봉",
             "청진기", "마이크", "공", "비행기", "복주머니"
         ];
 
-        function init() {
-            createStarfield();
-            createTracks();
-            document.getElementById('loading').style.display = 'none';
-
-            fetchData();
-            setInterval(fetchData, 3000);
-        }
-
+        /* ── 별 / 스피드라인 ── */
         function createStarfield() {
             const bg = document.getElementById('bg-container');
-            const starCount = 150;
 
-            for (let i = 0; i < starCount; i++) {
-                const star = document.createElement('div');
-                star.className = 'star';
+            const layers = [
+                { count: 80, minSize: 1,   maxSize: 1.5, minDur: 6,   maxDur: 10,  opacity: 0.5,  anim: 'starFallSlow' },
+                { count: 50, minSize: 1.5, maxSize: 2.5, minDur: 3,   maxDur: 5,   opacity: 0.75, anim: 'starFallMid'  },
+                { count: 20, minSize: 2,   maxSize: 4,   minDur: 0.8, maxDur: 1.8, opacity: 1,    anim: 'starFallFast', streak: true },
+            ];
 
-                const x = Math.random() * 100;
-                star.style.left = `${x}%`;
-
-                const type = Math.random();
-                let size, duration, opacity;
-
-                if (type > 0.9) {
-                    size = Math.random() * 3 + 2 + 'px';
-                    duration = Math.random() * 0.5 + 0.3 + 's';
-                    opacity = 1.0;
-                    star.style.height = (Math.random() * 30 + 10) + 'px';
-                } else if (type > 0.6) {
-                    size = Math.random() * 2 + 1 + 'px';
-                    duration = Math.random() * 2 + 1 + 's';
-                    opacity = 0.85;
-                    star.style.height = size;
-                } else {
-                    size = Math.random() * 1.5 + 'px';
-                    duration = Math.random() * 5 + 3 + 's';
-                    opacity = 0.6;
-                    star.style.height = size;
+            layers.forEach(layer => {
+                for (let i = 0; i < layer.count; i++) {
+                    const s = document.createElement('div');
+                    s.className = 'star';
+                    const size = Math.random() * (layer.maxSize - layer.minSize) + layer.minSize;
+                    s.style.cssText = `
+                        left:${Math.random()*100}%;
+                        width:${size}px;
+                        height:${layer.streak ? size*(Math.random()*8+4) : size}px;
+                        opacity:${layer.opacity};
+                        animation:${layer.anim} ${(Math.random()*(layer.maxDur-layer.minDur)+layer.minDur).toFixed(2)}s linear infinite;
+                        animation-delay:-${(Math.random()*8).toFixed(2)}s;
+                    `;
+                    bg.appendChild(s);
                 }
+            });
 
-                star.style.width = size;
-                star.style.opacity = opacity;
-
-                star.style.animation = `starFall ${duration} linear infinite`;
-                star.style.animationDelay = `-${Math.random() * 5}s`;
-
-                bg.appendChild(star);
+            for (let i = 0; i < 35; i++) {
+                const line = document.createElement('div');
+                line.className = 'speed-line';
+                const dur = (Math.random() * 0.6 + 0.25).toFixed(2);
+                line.style.cssText = `
+                    left:${Math.random()*100}%;
+                    height:${Math.random()*80+30}px;
+                    animation:speedLineFall ${dur}s linear infinite;
+                    animation-delay:-${(Math.random()*1.5).toFixed(2)}s;
+                    opacity:${Math.random()*0.5+0.2};
+                `;
+                bg.appendChild(line);
             }
         }
 
+        /* ── 트랙 / 캐릭터 생성 ── */
         function createTracks() {
             const container = document.getElementById('track-container');
             container.innerHTML = '';
@@ -351,26 +297,32 @@
                 const track = document.createElement('div');
                 track.className = 'track';
 
+                // character-container
                 const charContainer = document.createElement('div');
                 charContainer.className = 'character-container';
                 charContainer.id = `char-${index}`;
                 charContainer.style.bottom = '0%';
-
-                // 클릭 이벤트 연결
                 charContainer.onclick = function () {
-                    const wrapper = this.querySelector('.character-motion-wrapper');
-                    triggerHitEffect(wrapper);
+                    const bobEl = this.querySelector('.bob-wrapper');
+                    triggerHitEffect(bobEl);
                 };
 
-                const wrapper = document.createElement('div');
-                wrapper.className = 'character-motion-wrapper';
+                // bob-wrapper (상하 움직임 + hit)
+                const bobWrapper = document.createElement('div');
+                bobWrapper.className = 'bob-wrapper';
+
+                // tilt-wrapper (기울기 전환)
+                const tiltWrapper = document.createElement('div');
+                tiltWrapper.className = 'tilt-wrapper';
+                tiltWrapper.id = `tilt-${index}`;
 
                 const img = document.createElement('img');
-                img.src = './superman_jun.png';
-                img.alt = item;
+                img.src       = './superman_jun.png';
+                img.alt       = item;
                 img.className = 'character-img';
-                img.onerror = function () { this.style.display = 'none'; };
+                img.onerror   = function () { this.style.display = 'none'; };
 
+                // info-box는 bob/tilt 밖 → 항상 정자세
                 const info = document.createElement('div');
                 info.className = 'info-box';
                 info.innerHTML = `
@@ -378,59 +330,54 @@
                     <div class="vote-count" id="count-${index}">0</div>
                 `;
 
-                wrapper.appendChild(img);
-                wrapper.appendChild(info);
-                charContainer.appendChild(wrapper);
+                tiltWrapper.appendChild(img);
+                bobWrapper.appendChild(tiltWrapper);
+                charContainer.appendChild(bobWrapper);
+                charContainer.appendChild(info);   // bob/tilt 밖에 붙임
                 track.appendChild(charContainer);
                 container.appendChild(track);
             });
         }
 
-        function triggerHitEffect(element) {
-            if (element.classList.contains('hit')) return;
-
-            element.classList.add('hit');
+        /* ── 타격 효과 ── */
+        function triggerHitEffect(bobEl) {
+            if (bobEl.classList.contains('hit')) return;
+            bobEl.classList.add('hit');
             setTimeout(() => {
-                element.classList.remove('hit');
-            }, 500);
+                bobEl.classList.remove('hit');
+            }, 700);
         }
 
+        /* ── 데이터 fetch ── */
+        let isFetching = false;
+
         async function fetchData() {
+            if (isFetching) return;
+            isFetching = true;
             try {
-                const separator = SHEET_URL.includes('?') ? '&' : '?';
-                const urlWithCache = `${SHEET_URL}${separator}t=${Date.now()}`;
-
-                // [수정 완료] corsproxy.io (차단됨) -> api.allorigins.win (정상 작동)
-                // 이곳을 바꿔야 투표 카운트가 정상적으로 올라갑니다.
-                const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(urlWithCache);
-
-                const response = await fetch(proxyUrl);
+                // 서버 사이드 프록시 사용 → 제3자 프록시 지연 없음
+                const response = await fetch('/api/votes', { cache: 'no-store' });
                 if (!response.ok) throw new Error("네트워크 응답 오류");
-
                 const csvText = await response.text();
                 if (!csvText || csvText.trim().length === 0) throw new Error("데이터 비어있음");
-
-                const votes = parseCSV(csvText);
-                updateDisplay(votes);
+                updateDisplay(parseCSV(csvText));
                 hideError();
-
             } catch (error) {
                 console.error("Fetch Error:", error);
+            } finally {
+                isFetching = false;
             }
         }
 
         function parseCSV(text) {
-            const rows = text.split(/\r?\n/);
+            const rows   = text.split(/\r?\n/);
             const counts = {};
             TARGET_ITEMS.forEach(i => counts[i] = 0);
-
             rows.forEach(row => {
                 const cols = row.split(',');
                 if (cols.length >= 2) {
                     const itemName = cols[0].replace(/^"|"$/g, '').trim();
-                    const voteValue = cols[1].replace(/^"|"$/g, '').trim();
-                    const numVote = parseInt(voteValue, 10);
-
+                    const numVote  = parseInt(cols[1].replace(/^"|"$/g, '').trim(), 10);
                     if (counts.hasOwnProperty(itemName) && !isNaN(numVote)) {
                         counts[itemName] = numVote;
                     }
@@ -439,32 +386,30 @@
             return counts;
         }
 
-        // [핵심 로직] 0.75승 가중치 적용 (Start Low, Jump High)
+        /* ── 화면 업데이트 ── */
         function updateDisplay(counts) {
-            let currentMax = Math.max(...Object.values(counts));
-
-            // 기준점 (목표 20표)
-            let scaleBase = Math.max(currentMax, GOAL_VOTES);
+            const currentMax = Math.max(...Object.values(counts));
+            const scaleBase  = Math.max(currentMax, GOAL_VOTES);
 
             TARGET_ITEMS.forEach((item, index) => {
-                const count = counts[item];
-                const charEl = document.getElementById(`char-${index}`);
+                const count   = counts[item];
+                const charEl  = document.getElementById(`char-${index}`);
                 const countEl = document.getElementById(`count-${index}`);
+                const tiltEl  = document.getElementById(`tilt-${index}`);
 
                 countEl.innerText = `${count}`;
 
-                // 1. 단순 비율 (0 ~ 1.0)
-                let ratio = count / scaleBase;
+                const ratio       = count / scaleBase;
+                const curvedRatio = Math.pow(ratio, 2.0);
+                charEl.style.bottom = `${curvedRatio * 78}%`;
 
-                // 2. 2.0승(제곱) 적용:
-                // - 초반(1~3표)은 완만하게 오르다가, 후반(7~10표)으로 갈수록 격차가 커짐
-                // - 상위권 경쟁의 긴장감을 높이는 방식
-                let curvedRatio = Math.pow(ratio, 2.0);
-
-                // 화면 높이의 78%까지만 사용 (상단 여백 확보)
-                const percentage = curvedRatio * 78;
-
-                charEl.style.bottom = `${percentage}%`;
+                // 0표 → idle(정자세), 1표 이상 → flying(기울기)
+                // CSS transition이 자동으로 부드럽게 처리
+                if (count > 0) {
+                    tiltEl.classList.add('flying');
+                } else {
+                    tiltEl.classList.remove('flying');
+                }
             });
         }
 
@@ -473,8 +418,16 @@
             if (errEl.style.display !== 'none') errEl.style.display = 'none';
         }
 
+        /* ── 초기화 ── */
+        function init() {
+            createStarfield();
+            createTracks();
+            document.getElementById('loading').style.display = 'none';
+            fetchData();
+            setInterval(fetchData, 1000);  // 1초마다 polling
+        }
+
         window.addEventListener('load', init);
     </script>
 </body>
-
 </html>
