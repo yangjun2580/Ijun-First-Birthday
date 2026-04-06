@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>이준이 돌잔치 장거리상 🚗💨</title>
+
+<!-- Fonts: Fredoka + Gaegu -->
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Gaegu:wght@400;700&display=swap" rel="stylesheet"/>
+<!-- Tailwind CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          fredoka: ['Fredoka','sans-serif'],
+          gaegu:  ['Gaegu','cursive'],
+        },
+        colors: {
+          pink:   { soft:'#FFD6E7', mid:'#FFB3CE', deep:'#FF85AD' },
+          sky:    { soft:'#D6EEFF', mid:'#A8D8FF', deep:'#5EB3FF' },
+          lemon:  { soft:'#FFFBD6', mid:'#FFF3A8', deep:'#FFE55E' },
+          mint:   { soft:'#D6FFF0', mid:'#A8FFDB', deep:'#5EFFBB' },
+          peach:  { soft:'#FFE8D6', mid:'#FFD0A8', deep:'#FFB05E' },
+        }
+      }
+    }
+  }
+</script>
+
+<style>
+  * { box-sizing: border-box; }
+  body { font-family:'Fredoka',sans-serif; margin:0; overflow:hidden; background:#FFF0F7; }
+
+  /* Leaflet attribution 숨김 (이벤트 용도) */
+  .leaflet-control-attribution { display:none !important; }
+
+  /* 부드러운 팝업 등장 */
+  @keyframes popIn {
+    0%   { transform:scale(0.7) translateY(10px); opacity:0; }
+    70%  { transform:scale(1.05) translateY(-3px); opacity:1; }
+    100% { transform:scale(1) translateY(0); opacity:1; }
+  }
+  @keyframes slideIn {
+    from { transform:translateX(60px); opacity:0; }
+    to   { transform:translateX(0);    opacity:1; }
+  }
+  @keyframes bounce {
+    0%,100% { transform:translateY(0); }
+    50%     { transform:translateY(-6px); }
+  }
+  @keyframes wiggle {
+    0%,100% { transform:rotate(-3deg); }
+    50%     { transform:rotate(3deg); }
+  }
+  @keyframes confetti {
+    0%   { transform:translateY(0) rotate(0deg); opacity:1; }
+    100% { transform:translateY(-80px) rotate(360deg); opacity:0; }
+  }
+  @keyframes shimmer {
+    0%,100% { opacity:0.8; }
+    50%     { opacity:1; }
+  }
+
+  .pop-in    { animation:popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+  .slide-in  { animation:slideIn 0.35s cubic-bezier(0.34,1.4,0.64,1) forwards; }
+  .bounce-loop { animation:bounce 1.8s ease-in-out infinite; }
+  .wiggle-loop { animation:wiggle 0.5s ease-in-out infinite; }
+  .shimmer-loop { animation:shimmer 2s ease-in-out infinite; }
+
+  /* 자동차 마커 */
+  .car-wrap { position:relative; display:inline-block; cursor:default; }
+  .car-nametag {
+    position:absolute; top:-22px; left:50%; transform:translateX(-50%);
+    background:white; border-radius:999px; padding:2px 8px;
+    font-family:'Fredoka',sans-serif; font-size:11px; font-weight:600;
+    white-space:nowrap; box-shadow:0 2px 8px rgba(0,0,0,0.18);
+    border:2px solid var(--car-color,#FFB3CE);
+    line-height:1.3;
+  }
+  .car-nametag::after {
+    content:''; position:absolute; bottom:-6px; left:50%; transform:translateX(-50%);
+    border:3px solid transparent; border-top-color:var(--car-color,#FFB3CE);
+  }
+  .car-dist-badge {
+    position:absolute; bottom:-18px; left:50%; transform:translateX(-50%);
+    background:rgba(0,0,0,0.55); color:#fff; border-radius:999px;
+    padding:1px 6px; font-size:10px; white-space:nowrap;
+    font-family:'Fredoka',sans-serif;
+  }
+  .dest-marker {
+    font-size:38px; line-height:1;
+    filter: drop-shadow(2px 3px 6px rgba(0,0,0,0.25));
+    animation: bounce 2s ease-in-out infinite;
+  }
+
+  /* 오른쪽 패널 */
+  .glass-panel {
+    background:rgba(255,255,255,0.78);
+    backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);
+    border:2px solid rgba(255,255,255,0.9);
+  }
+
+  /* 손님 아이템 */
+  .guest-item {
+    transition:all 0.25s ease;
+  }
+  .guest-item:hover { transform:translateX(-3px); }
+
+  /* 버튼 */
+  .btn-kakao {
+    background:linear-gradient(135deg,#FFE066,#FFCD00);
+    color:#3C1E1E; font-family:'Fredoka',sans-serif; font-weight:600;
+    border-radius:999px; box-shadow:0 4px 14px rgba(255,193,0,0.4);
+    transition:all 0.2s;
+  }
+  .btn-kakao:hover { transform:translateY(-2px); box-shadow:0 6px 18px rgba(255,193,0,0.5); }
+  .btn-kakao:active { transform:translateY(0); }
+
+  .btn-start {
+    background:linear-gradient(135deg,#FF85AD,#FF5B8A);
+    color:white; font-family:'Fredoka',sans-serif; font-weight:700;
+    border-radius:999px; box-shadow:0 6px 20px rgba(255,90,140,0.45);
+    transition:all 0.2s; letter-spacing:0.5px;
+  }
+  .btn-start:hover  { transform:translateY(-3px) scale(1.04); box-shadow:0 10px 28px rgba(255,90,140,0.55); }
+  .btn-start:active { transform:scale(0.97); }
+
+  /* 모달 */
+  .modal-overlay {
+    position:fixed; inset:0; z-index:9999;
+    background:rgba(255,180,210,0.35);
+    backdrop-filter:blur(6px);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .modal-box {
+    background:white; border-radius:28px;
+    border:3px solid #FFD6E7;
+    box-shadow:0 20px 60px rgba(255,130,170,0.25);
+    padding:32px 28px; width:360px; max-width:92vw;
+  }
+
+  input.kawaii {
+    width:100%; border:2px solid #FFD6E7; border-radius:16px;
+    padding:10px 16px; font-family:'Fredoka',sans-serif; font-size:1rem;
+    outline:none; transition:border-color 0.2s;
+    background:#FFF8FB; color:#3C1E1E;
+  }
+  input.kawaii::placeholder { color:#FFAAC8; }
+  input.kawaii:focus { border-color:#FF85AD; }
+
+  /* 순위 뱃지 */
+  .rank-1 { background:linear-gradient(135deg,#FFE566,#FFD000); color:#7A4A00; }
+  .rank-2 { background:linear-gradient(135deg,#E8E8E8,#C8C8C8); color:#555; }
+  .rank-3 { background:linear-gradient(135deg,#FFD4A8,#FFB878); color:#7A3A00; }
+  .rank-n { background:#F0E6FF; color:#7755AA; }
+
+  /* 거리 바 */
+  .dist-bar-fill {
+    height:6px; border-radius:999px;
+    background:linear-gradient(90deg,#FF85AD,#FFB3CE);
+    transition:width 1s ease;
+  }
+
+  /* 지도 wrapper */
+  #map { position:absolute; inset:0; z-index:0; }
+
+  /* 반응형 */
+  @media (max-width:768px) {
+    #panel { width:100% !important; right:0 !important; top:auto !important; bottom:0 !important; border-radius:24px 24px 0 0 !important; max-height:42vh; }
+    #panel-inner { max-height:calc(42vh - 140px); }
+    #title-bar { left:8px !important; right:8px !important; top:8px !important; }
+    #btn-area { bottom:calc(42vh + 12px) !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════
+     지도 (Leaflet, 전체화면)
+══════════════════════════════════ -->
+<div id="map"></div>
+
+<!-- ══════════════════════════════════
+     제목 바 (플로팅 - 좌상단)
+══════════════════════════════════ -->
+<div id="title-bar" class="absolute top-4 left-4 z-50 glass-panel rounded-2xl px-5 py-3 shadow-lg">
+  <div class="flex items-center gap-3">
+    <span style="font-size:2rem;">🚗</span>
+    <div>
+      <p class="font-gaegu text-xl font-bold leading-tight" style="color:#FF5B8A;">이준이 돌잔치</p>
+      <p class="font-fredoka text-sm font-600 tracking-wide" style="color:#FF85AD;">장거리상 💨 멀리서 와주셔서 감사해요!</p>
+    </div>
+    <span style="font-size:2rem;">🎂</span>
+    <!-- SSE 연결 상태 표시 -->
+    <div class="flex items-center gap-1.5 ml-2 px-3 py-1 rounded-full" style="background:rgba(255,255,255,0.6); font-family:'Fredoka',sans-serif;">
+      <span id="sse-dot" style="width:8px;height:8px;border-radius:50%;background:#FFD6E7;display:inline-block;transition:background 0.3s;"></span>
+      <span id="sse-txt" class="text-xs" style="color:#FF85AD;">연결 중...</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     하단 버튼 영역 (플로팅 - 하단 중앙)
+══════════════════════════════════ -->
+<div id="btn-area" class="absolute bottom-6 z-50 flex flex-col items-center gap-3"
+     style="left:50%; transform:translateX(-50%); right:auto;">
+  <button onclick="openModal()" class="btn-kakao flex items-center gap-2 px-5 py-2.5 text-sm">
+    <span style="font-size:1.1rem;">🛠️</span> 테스트 추가 (관리자)
+  </button>
+  <button onclick="startAnimation()" id="btn-start" class="btn-start flex items-center gap-3 px-8 py-3.5 text-xl">
+    <span class="wiggle-loop inline-block">🚗</span> 자동차 출발!
+  </button>
+</div>
+
+<!-- ══════════════════════════════════
+     오른쪽 플로팅 패널 (손님 리스트)
+══════════════════════════════════ -->
+<div id="panel" class="absolute top-4 right-4 z-50 glass-panel rounded-3xl shadow-2xl"
+     style="width:300px; border:2px solid rgba(255,213,226,0.9);">
+
+  <!-- 패널 헤더 -->
+  <div class="px-5 pt-5 pb-3 border-b-2" style="border-color:#FFE4EF;">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span style="font-size:1.3rem;">🏆</span>
+        <span class="font-gaegu text-lg font-bold" style="color:#FF5B8A;">멀리서 온 손님들</span>
+      </div>
+      <span id="guest-count" class="text-xs font-600 px-2.5 py-1 rounded-full"
+            style="background:#FFE4EF; color:#FF5B8A; font-family:'Fredoka',sans-serif;">0명</span>
+    </div>
+    <!-- 1등 안내 -->
+    <div id="winner-banner" class="hidden mt-2 rounded-2xl p-2.5 text-center shimmer-loop"
+         style="background:linear-gradient(135deg,#FFE566,#FFCD00);">
+      <p class="text-xs font-600" style="color:#7A4A00; font-family:'Fredoka',sans-serif;">
+        🥇 <span id="winner-name">-</span>님이 가장 멀리서 오셨어요!
+      </p>
+      <p class="text-xs" style="color:#A06000; font-family:'Fredoka',sans-serif;">
+        <span id="winner-dist">-</span> km
+      </p>
+    </div>
+  </div>
+
+  <!-- 손님 목록 -->
+  <div id="panel-inner" class="overflow-y-auto px-4 py-3" style="max-height:calc(100vh - 280px);">
+    <div id="guest-list" class="flex flex-col gap-2"></div>
+    <div id="empty-msg" class="text-center py-8" style="color:#FFAAC8; font-family:'Fredoka',sans-serif;">
+      <div style="font-size:2.5rem;">🗺️</div>
+      <p class="text-sm mt-2">카카오톡에서 손님을 기다리는 중...</p>
+    </div>
+  </div>
+
+  <!-- 거리 기준 MAX 바 -->
+  <div id="dist-bar-section" class="hidden px-4 pb-4">
+    <p class="text-xs mb-1.5" style="color:#FFAAC8; font-family:'Fredoka',sans-serif;">
+      최장거리 기준
+    </p>
+    <div class="rounded-full overflow-hidden" style="height:6px; background:#FFE4EF;">
+      <div class="dist-bar-fill" style="width:100%;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     새 손님 모달
+══════════════════════════════════ -->
+<div id="modal" class="modal-overlay hidden">
+  <div class="modal-box pop-in">
+    <!-- 모달 헤더 -->
+    <div class="text-center mb-5">
+      <div style="font-size:2.8rem;">💬</div>
+      <h2 class="font-gaegu text-2xl font-bold mt-1" style="color:#FF5B8A;">카카오톡 손님 도착!</h2>
+      <p class="text-sm mt-1" style="color:#FFAAC8; font-family:'Fredoka',sans-serif;">
+        채널에서 받은 정보를 입력하세요
+      </p>
+    </div>
+
+    <!-- 카카오톡 채널 메시지 미리보기 -->
+    <div class="rounded-2xl p-3 mb-4" style="background:#FFF8E7; border:2px dashed #FFE066;">
+      <div class="flex items-start gap-2">
+        <span style="font-size:1.3rem;">📱</span>
+        <div>
+          <p class="text-xs font-600" style="color:#7A4A00; font-family:'Fredoka',sans-serif;">
+            카카오톡 채널 메시지
+          </p>
+          <p class="text-xs mt-0.5" style="color:#AA7700; font-family:'Fredoka',sans-serif;">
+            예: "이름: 홍길동 / 출발지: 부산시 해운대구"
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-3">
+      <div>
+        <label class="text-sm font-600 mb-1.5 block" style="color:#FF85AD; font-family:'Fredoka',sans-serif;">
+          👤 이름 (가족명)
+        </label>
+        <input id="input-name" class="kawaii" placeholder="예: 홍길동 가족" type="text"/>
+      </div>
+      <div>
+        <label class="text-sm font-600 mb-1.5 block" style="color:#FF85AD; font-family:'Fredoka',sans-serif;">
+          📍 출발지 주소
+        </label>
+        <input id="input-addr" class="kawaii" placeholder="예: 부산시 해운대구" type="text"/>
+      </div>
+      <div id="modal-error" class="hidden rounded-xl p-2.5 text-sm text-center"
+           style="background:#FFE4EF; color:#FF5B8A; font-family:'Fredoka',sans-serif;">
+        🗺️ 주소를 찾을 수 없어요. 다시 입력해주세요!
+      </div>
+    </div>
+
+    <!-- 자동차 선택 -->
+    <div class="mt-4">
+      <label class="text-sm font-600 mb-2 block" style="color:#FF85AD; font-family:'Fredoka',sans-serif;">
+        🚗 자동차 선택
+      </label>
+      <div class="flex gap-2 flex-wrap">
+        <button onclick="selectCar('red')"    id="car-btn-red"    class="car-select-btn car-selected" data-car="red"    style="--c:#FF6B6B" title="빨강 스포츠카">🔴</button>
+        <button onclick="selectCar('blue')"   id="car-btn-blue"   class="car-select-btn"              data-car="blue"   style="--c:#5EB3FF" title="파랑 트럭">🔵</button>
+        <button onclick="selectCar('yellow')" id="car-btn-yellow" class="car-select-btn"              data-car="yellow" style="--c:#FFD700" title="노랑 버스">🟡</button>
+        <button onclick="selectCar('green')"  id="car-btn-green"  class="car-select-btn"              data-car="green"  style="--c:#5EFFBB" title="초록 SUV">🟢</button>
+        <button onclick="selectCar('pink')"   id="car-btn-pink"   class="car-select-btn"              data-car="pink"   style="--c:#FF85AD" title="핑크 미니">🩷</button>
+      </div>
+    </div>
+
+    <!-- 버튼 -->
+    <div class="flex gap-3 mt-5">
+      <button onclick="closeModal()"
+              class="flex-1 py-3 rounded-2xl font-600 text-sm transition-all hover:bg-pink-50"
+              style="border:2px solid #FFD6E7; color:#FF85AD; font-family:'Fredoka',sans-serif;">
+        취소
+      </button>
+      <button onclick="submitGuest()"
+              class="flex-1 py-3 rounded-2xl font-600 text-sm text-white transition-all hover:opacity-90"
+              style="background:linear-gradient(135deg,#FF85AD,#FF5B8A); font-family:'Fredoka',sans-serif;
+                     box-shadow:0 4px 14px rgba(255,90,140,0.4);">
+        <span id="modal-btn-txt">✨ 추가하기</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .car-select-btn {
+    width:40px; height:40px; border-radius:12px; font-size:1.3rem;
+    border:2px solid transparent; transition:all 0.15s;
+    cursor:pointer; background:rgba(255,255,255,0.7);
+  }
+  .car-select-btn:hover  { transform:scale(1.15); }
+  .car-selected {
+    border-color:var(--c,#FF85AD) !important;
+    background:rgba(255,255,255,0.95) !important;
+    box-shadow:0 0 0 3px rgba(255,133,173,0.25);
+    transform:scale(1.1);
+  }
+</style>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// 🔧 카카오톡 채널 웹훅 연동 포인트
+//
+// 실제 서비스에서는 카카오톡 채널 웹훅이 아래 함수를 호출합니다:
+//   POST /api/kakao-webhook
+//   body: { "name": "홍길동 가족", "address": "부산시 해운대구" }
+//
+// server.js 에서 해당 엔드포인트를 만들고 SSE 또는 WebSocket으로
+// 프론트엔드에 push하면 addGuest()를 자동 호출할 수 있습니다.
+//
+// 현재는 "카카오톡 손님 도착!" 버튼으로 시뮬레이션합니다.
+// ═══════════════════════════════════════════════════════════════
+
+// ── 돌잔치 장소 (기준점) ───────────────────────────────────────
+// TODO: 실제 돌잔치 장소 주소로 변경하세요
+const DESTINATION = {
+  lat:  37.5134,
+  lng:  127.1004,
+  name: '잠실 롯데호텔',
+  address: '서울 송파구 잠실동'
+};
+
+// ── 자동차 SVG 디자인 (5종) ────────────────────────────────────
+const CARS = {
+  red: {
+    color: '#FF6B6B',
+    label: '빨강 스포츠카',
+    svg: `<svg width="68" height="38" viewBox="0 0 68 38" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="34" cy="35" rx="26" ry="3.5" fill="rgba(0,0,0,0.12)"/>
+      <rect x="3" y="18" width="62" height="13" rx="7" fill="#FF6B6B"/>
+      <path d="M16 18 Q21 7 34 6 Q47 7 52 18Z" fill="#FF5252"/>
+      <path d="M20 18 Q24 10 34 9 Q44 10 48 18Z" fill="#B3E5FC" opacity="0.82"/>
+      <circle cx="15" cy="31" r="7" fill="#2D2D2D"/><circle cx="15" cy="31" r="3" fill="#888"/>
+      <circle cx="53" cy="31" r="7" fill="#2D2D2D"/><circle cx="53" cy="31" r="3" fill="#888"/>
+      <ellipse cx="64" cy="22" rx="2.5" ry="2" fill="#FFF9C4" stroke="#FFD54F" stroke-width="1"/>
+      <rect x="3" y="21" width="4" height="3" rx="1.5" fill="#FF1744"/>
+      <rect x="9" y="20" width="40" height="2" rx="1" fill="#FF8E8E" opacity="0.4"/>
+    </svg>`
+  },
+  blue: {
+    color: '#5EB3FF',
+    label: '파랑 트럭',
+    svg: `<svg width="68" height="38" viewBox="0 0 68 38" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="34" cy="35" rx="26" ry="3.5" fill="rgba(0,0,0,0.12)"/>
+      <rect x="3" y="14" width="36" height="17" rx="3" fill="#5EB3FF"/>
+      <rect x="3" y="14" width="36" height="4" rx="2" fill="#2196F3" opacity="0.5"/>
+      <rect x="38" y="10" width="27" height="21" rx="6" fill="#42A5F5"/>
+      <rect x="41" y="12" width="15" height="11" rx="4" fill="#B3E5FC" opacity="0.88"/>
+      <rect x="5" y="15" width="32" height="1.5" rx="1" fill="#1565C0" opacity="0.4"/>
+      <circle cx="14" cy="31" r="7" fill="#2D2D2D"/><circle cx="14" cy="31" r="3" fill="#888"/>
+      <circle cx="54" cy="31" r="7" fill="#2D2D2D"/><circle cx="54" cy="31" r="3" fill="#888"/>
+      <ellipse cx="64" cy="20" rx="2.5" ry="2" fill="#FFF9C4" stroke="#FFD54F" stroke-width="1"/>
+      <rect x="3" y="21" width="4" height="3" rx="1.5" fill="#FF1744"/>
+    </svg>`
+  },
+  yellow: {
+    color: '#FFD700',
+    label: '노랑 버스',
+    svg: `<svg width="68" height="44" viewBox="0 0 68 44" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="34" cy="41" rx="26" ry="3.5" fill="rgba(0,0,0,0.12)"/>
+      <rect x="3" y="7" width="62" height="27" rx="6" fill="#FFD54F"/>
+      <rect x="8"  y="11" width="11" height="9" rx="3" fill="#B3E5FC" opacity="0.88"/>
+      <rect x="22" y="11" width="11" height="9" rx="3" fill="#B3E5FC" opacity="0.88"/>
+      <rect x="36" y="11" width="11" height="9" rx="3" fill="#B3E5FC" opacity="0.88"/>
+      <rect x="50" y="11" width="11" height="9" rx="3" fill="#B3E5FC" opacity="0.88"/>
+      <rect x="3" y="24" width="62" height="3" rx="1.5" fill="#FFA000" opacity="0.5"/>
+      <rect x="56" y="24" width="7" height="8" rx="2" fill="#FFCA28"/>
+      <circle cx="15" cy="34" r="7" fill="#2D2D2D"/><circle cx="15" cy="34" r="3" fill="#888"/>
+      <circle cx="53" cy="34" r="7" fill="#2D2D2D"/><circle cx="53" cy="34" r="3" fill="#888"/>
+      <ellipse cx="64" cy="16" rx="2.5" ry="2" fill="#FFF9C4" stroke="#FFD54F" stroke-width="1"/>
+      <ellipse cx="64" cy="23" rx="2.5" ry="2" fill="#FFF9C4" stroke="#FFD54F" stroke-width="1"/>
+      <rect x="3" y="17" width="4" height="3" rx="1.5" fill="#FF1744"/>
+    </svg>`
+  },
+  green: {
+    color: '#4CAF50',
+    label: '초록 SUV',
+    svg: `<svg width="68" height="40" viewBox="0 0 68 40" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="34" cy="37" rx="26" ry="3.5" fill="rgba(0,0,0,0.12)"/>
+      <rect x="3" y="17" width="62" height="15" rx="6" fill="#66BB6A"/>
+      <rect x="12" y="9"  width="44" height="10" rx="5" fill="#4CAF50"/>
+      <rect x="14" y="10" width="18" height="8" rx="3" fill="#B3E5FC" opacity="0.88"/>
+      <rect x="35" y="10" width="18" height="8" rx="3" fill="#B3E5FC" opacity="0.88"/>
+      <rect x="14" y="8" width="40" height="2.5" rx="1" fill="#2E7D32"/>
+      <rect x="20" y="7" width="3" height="5" rx="1" fill="#2E7D32"/>
+      <rect x="44" y="7" width="3" height="5" rx="1" fill="#2E7D32"/>
+      <circle cx="15" cy="32" r="8" fill="#2D2D2D"/><circle cx="15" cy="32" r="3.5" fill="#888"/>
+      <circle cx="53" cy="32" r="8" fill="#2D2D2D"/><circle cx="53" cy="32" r="3.5" fill="#888"/>
+      <rect x="62" y="19" width="5" height="5" rx="2" fill="#FFF9C4" stroke="#FFD54F" stroke-width="1"/>
+      <rect x="3" y="21" width="4" height="3" rx="1.5" fill="#FF1744"/>
+    </svg>`
+  },
+  pink: {
+    color: '#FF85AD',
+    label: '핑크 미니',
+    svg: `<svg width="62" height="38" viewBox="0 0 62 38" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="31" cy="35" rx="24" ry="3.5" fill="rgba(0,0,0,0.12)"/>
+      <rect x="3" y="17" width="56" height="14" rx="9" fill="#F48FB1"/>
+      <ellipse cx="31" cy="18" rx="21" ry="11" fill="#F06292"/>
+      <circle cx="20" cy="16" r="7" fill="#B3E5FC" opacity="0.88"/>
+      <circle cx="40" cy="16" r="7" fill="#B3E5FC" opacity="0.88"/>
+      <circle cx="56" cy="23" r="4" fill="#FFF9C4" stroke="#FFD54F" stroke-width="1.5"/>
+      <circle cx="3"  cy="23" r="3" fill="#FF1744"/>
+      <rect x="8" y="22" width="46" height="2" rx="1" fill="#E91E8A" opacity="0.28"/>
+      <circle cx="15" cy="31" r="7" fill="#2D2D2D"/><circle cx="15" cy="31" r="3" fill="#888"/>
+      <circle cx="47" cy="31" r="7" fill="#2D2D2D"/><circle cx="47" cy="31" r="3" fill="#888"/>
+      <circle cx="20" cy="16" r="3" fill="#fff" opacity="0.6"/>
+      <circle cx="40" cy="16" r="3" fill="#fff" opacity="0.6"/>
+    </svg>`
+  }
+};
+
+// ── 초기 손님 데이터 (카카오톡에서 이미 받은 것처럼) ─────────────
+const INITIAL_GUESTS = [
+  { id:1, name:'홍길동 가족',  address:'부산시 해운대구', lat:35.163,  lng:129.163, carType:'red'    },
+  { id:2, name:'김서연 가족',  address:'광주광역시 서구', lat:35.152,  lng:126.852, carType:'blue'   },
+  { id:3, name:'이민호 가족',  address:'강원도 강릉시',   lat:37.748,  lng:128.879, carType:'yellow' },
+  { id:4, name:'박지우 가족',  address:'제주시 연동',     lat:33.499,  lng:126.531, carType:'green'  },
+];
+
+// ── 상태 ─────────────────────────────────────────────────────────
+let map, guests = [], nextId = 100, animRunning = false;
+let selectedCar = 'red';
+let polylines = [];
+
+// ── Haversine 거리 (km) ─────────────────────────────────────────
+function haversine(lat1,lng1,lat2,lng2) {
+  const R=6371, dL=(lat2-lat1)*Math.PI/180, dN=(lng2-lng1)*Math.PI/180;
+  const a=Math.sin(dL/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dN/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+// ── 이징 함수 ────────────────────────────────────────────────────
+function easeInOutQuad(t) { return t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2; }
+function easeOutBounce(x) {
+  const n=7.5625, d=2.75;
+  if(x<1/d)       return n*x*x;
+  else if(x<2/d)  return n*(x-=1.5/d)*x+0.75;
+  else if(x<2.5/d)return n*(x-=2.25/d)*x+0.9375;
+  else             return n*(x-=2.625/d)*x+0.984375;
+}
+function carEase(t) {
+  if(t<0.75) return easeInOutQuad(t/0.75)*0.92;
+  return 0.92+0.08*easeOutBounce((t-0.75)/0.25);
+}
+
+// ── 지도 초기화 ─────────────────────────────────────────────────
+function initMap() {
+  map = L.map('map', { zoomControl:true, attributionControl:false }).setView([36.5,127.8], 7);
+
+  // CartoDB Positron (파스텔 느낌의 밝은 지도 타일)
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    subdomains:'abcd', maxZoom:19
+  }).addTo(map);
+
+  // 목적지 마커 (케이크)
+  const destIcon = L.divIcon({
+    className:'',
+    html:`<div class="dest-marker">🎂</div>`,
+    iconSize:[44,44], iconAnchor:[22,22]
+  });
+  L.marker([DESTINATION.lat, DESTINATION.lng], {icon:destIcon, zIndexOffset:1000})
+   .addTo(map)
+   .bindTooltip(`<span style="font-family:'Fredoka',sans-serif;font-weight:600;">${DESTINATION.name}</span>`, {permanent:true, direction:'top', className:'dest-tooltip', offset:[0,-24]});
+
+  // 초기 손님 추가
+  INITIAL_GUESTS.forEach(g => addGuest(g.name, g.address, g.lat, g.lng, g.carType));
+  fitAll();
+}
+
+// ── 자동차 아이콘 생성 ───────────────────────────────────────────
+function createCarIcon(carType, name) {
+  const car = CARS[carType] || CARS.red;
+  return L.divIcon({
+    className:'',
+    html:`<div class="car-wrap" style="--car-color:${car.color}">
+            <div class="car-nametag" style="--car-color:${car.color}">${name}</div>
+            ${car.svg}
+          </div>`,
+    iconSize:[72,60], iconAnchor:[36,52]
+  });
+}
+
+// ── 손님 추가 ────────────────────────────────────────────────────
+function addGuest(name, address, lat, lng, carType='red') {
+  const id = nextId++;
+  const dist = haversine(lat, lng, DESTINATION.lat, DESTINATION.lng);
+  const marker = L.marker([lat,lng], {
+    icon: createCarIcon(carType, name),
+    zIndexOffset: 100
+  }).addTo(map);
+
+  guests.push({ id, name, address, lat, lng, carType, dist, marker, startLat:lat, startLng:lng });
+  renderGuestList();
+  updateWinner();
+  return id;
+}
+
+// ── 손님 목록 렌더링 ─────────────────────────────────────────────
+function renderGuestList() {
+  const el = document.getElementById('guest-list');
+  const empty = document.getElementById('empty-msg');
+  const countEl = document.getElementById('guest-count');
+
+  if(guests.length === 0) {
+    el.innerHTML=''; empty.classList.remove('hidden');
+    countEl.textContent='0명'; return;
+  }
+  empty.classList.add('hidden');
+  countEl.textContent=`${guests.length}명`;
+
+  const sorted = [...guests].sort((a,b)=>b.dist-a.dist);
+  const maxDist = sorted[0].dist;
+
+  el.innerHTML = sorted.map((g,i) => {
+    const pct = ((g.dist/maxDist)*100).toFixed(0);
+    const badges = ['🥇','🥈','🥉'];
+    const badge = badges[i] || `${i+1}`;
+    const car = CARS[g.carType]||CARS.red;
+    return `
+    <div class="guest-item rounded-2xl p-3 slide-in"
+         style="background:rgba(255,255,255,0.7); border:2px solid ${car.color}22;
+                animation-delay:${i*0.05}s;">
+      <div class="flex items-center gap-2 mb-1.5">
+        <span class="text-lg">${badge}</span>
+        <div class="flex-1 min-w-0">
+          <p class="font-600 text-sm truncate" style="color:#3C1E1E;">${g.name}</p>
+          <p class="text-xs truncate" style="color:#AAAAAA;">${g.address}</p>
+        </div>
+        <div class="text-right flex-shrink-0">
+          <p class="font-700 text-sm" style="color:${car.color};">${g.dist.toFixed(1)}<span class="text-xs font-500">km</span></p>
+        </div>
+      </div>
+      <!-- 거리 바 -->
+      <div class="rounded-full overflow-hidden" style="height:5px; background:#FFE4EF;">
+        <div style="width:${pct}%; height:100%; background:${car.color}; border-radius:999px; transition:width 1s ease;"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('dist-bar-section').classList.remove('hidden');
+}
+
+// ── 1등 업데이트 ─────────────────────────────────────────────────
+function updateWinner() {
+  if(guests.length === 0) return;
+  const winner = [...guests].sort((a,b)=>b.dist-a.dist)[0];
+  const wb = document.getElementById('winner-banner');
+  document.getElementById('winner-name').textContent = winner.name;
+  document.getElementById('winner-dist').textContent = winner.dist.toFixed(1);
+  wb.classList.remove('hidden');
+}
+
+// ── 지도 bounds 맞춤 ─────────────────────────────────────────────
+function fitAll() {
+  if(guests.length===0) return;
+  const bounds = L.latLngBounds([[DESTINATION.lat,DESTINATION.lng]]);
+  guests.forEach(g=>bounds.extend([g.lat,g.lng]));
+  map.fitBounds(bounds, {padding:[60,60]});
+}
+
+// 지오코딩은 서버(server.js)에서 처리 → 클라이언트에서 직접 호출 불필요
+
+// ── 자동차 선택 ─────────────────────────────────────────────────
+function selectCar(type) {
+  selectedCar = type;
+  document.querySelectorAll('.car-select-btn').forEach(btn=>{
+    btn.classList.toggle('car-selected', btn.dataset.car===type);
+  });
+}
+
+// ── 모달 ─────────────────────────────────────────────────────────
+function openModal() {
+  document.getElementById('modal').classList.remove('hidden');
+  document.getElementById('input-name').value='';
+  document.getElementById('input-addr').value='';
+  document.getElementById('modal-error').classList.add('hidden');
+  document.getElementById('modal-btn-txt').textContent='✨ 추가하기';
+  document.getElementById('input-name').focus();
+}
+function closeModal() {
+  document.getElementById('modal').classList.add('hidden');
+}
+document.getElementById('modal').addEventListener('click', e => {
+  if(e.target===document.getElementById('modal')) closeModal();
+});
+
+// submitGuest는 아래 SSE 섹션에서 서버 API 호출 방식으로 정의됨
+
+// ── 토스트 알림 ─────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className='fixed z-50 bottom-24 left-1/2 text-sm font-600 rounded-2xl px-5 py-3 shadow-lg';
+  t.style.cssText='transform:translateX(-50%);background:linear-gradient(135deg,#FF85AD,#FF5B8A);color:white;font-family:Fredoka,sans-serif;white-space:nowrap;transition:all 0.4s;';
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(10px)'; }, 2200);
+  setTimeout(()=>t.remove(), 2700);
+}
+
+// ── 🚗 자동차 출발 애니메이션 ────────────────────────────────────
+let animFrameId = null;
+function startAnimation() {
+  if(guests.length===0){ alert('손님이 없어요!'); return; }
+  if(animRunning) return;
+
+  // 기존 경로선 제거
+  polylines.forEach(p=>p.remove());
+  polylines=[];
+
+  // 경로 점선 그리기
+  guests.forEach(g=>{
+    const car=CARS[g.carType]||CARS.red;
+    const line = L.polyline([[g.startLat,g.startLng],[DESTINATION.lat,DESTINATION.lng]],{
+      color:car.color, weight:2.5, opacity:0.5, dashArray:'8,8'
+    }).addTo(map);
+    polylines.push(line);
+  });
+
+  fitAll();
+  animRunning=true;
+  document.getElementById('btn-start').disabled=true;
+  document.getElementById('btn-start').style.opacity='0.6';
+
+  const DURATION = 9000;
+  const startTime = performance.now();
+
+  function frame(now) {
+    const elapsed = now - startTime;
+    const raw = Math.min(elapsed/DURATION, 1);
+    const progress = carEase(raw);
+
+    guests.forEach(g=>{
+      const lat = g.startLat + (DESTINATION.lat - g.startLat)*progress;
+      const lng = g.startLng + (DESTINATION.lng - g.startLng)*progress;
+      // 통통 bouncy 도로 느낌
+      const bounce = Math.sin(raw*Math.PI*16)*(1-raw)*0.04;
+      g.marker.setLatLng([lat+bounce, lng]);
+    });
+
+    if(raw<1) {
+      animFrameId = requestAnimationFrame(frame);
+    } else {
+      // 도착! 🎉
+      guests.forEach(g=>g.marker.setLatLng([DESTINATION.lat,DESTINATION.lng]));
+      animRunning=false;
+      document.getElementById('btn-start').disabled=false;
+      document.getElementById('btn-start').style.opacity='1';
+      spawnConfetti();
+      showToast('🎉 모두 도착했어요! 이준이 돌잔치에 와주셔서 감사해요!');
+      // 1등 하이라이트
+      const winner=[...guests].sort((a,b)=>b.dist-a.dist)[0];
+      showToast(`🏆 장거리상: ${winner.name}님 (${winner.dist.toFixed(1)}km)`);
+    }
+  }
+  animFrameId = requestAnimationFrame(frame);
+}
+
+// ── 색종이 효과 ─────────────────────────────────────────────────
+function spawnConfetti() {
+  const emojis=['🎉','🎊','⭐','🌟','💫','🎈','🎀'];
+  for(let i=0;i<20;i++) {
+    setTimeout(()=>{
+      const el=document.createElement('div');
+      el.textContent=emojis[Math.floor(Math.random()*emojis.length)];
+      el.style.cssText=`position:fixed;z-index:9998;font-size:${1.2+Math.random()}rem;
+        left:${10+Math.random()*80}vw;bottom:20vh;pointer-events:none;
+        animation:confetti ${0.8+Math.random()*1.2}s ease-out forwards;`;
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(),2000);
+    },i*80);
+  }
+}
+
+// ── 엔터키 모달 제출 ──────────────────────────────────────────────
+document.addEventListener('keydown', e=>{
+  if(e.key==='Enter' && !document.getElementById('modal').classList.contains('hidden')) submitGuest();
+  if(e.key==='Escape') closeModal();
+});
+
+// ═══════════════════════════════════════════════════════════════
+// 🔗 SSE 실시간 연결 (카카오톡 → n8n → server.js → 여기)
+// ═══════════════════════════════════════════════════════════════
+function connectSSE() {
+  const statusDot = document.getElementById('sse-dot');
+  const statusTxt = document.getElementById('sse-txt');
+
+  const es = new EventSource('/api/location-stream');
+
+  es.onopen = () => {
+    statusDot.style.background = '#5EFFBB';
+    statusTxt.textContent = '실시간 연결됨';
+  };
+
+  // 페이지 로드 시 서버에 저장된 기존 손님 복원
+  es.addEventListener('init', (e) => {
+    const locations = JSON.parse(e.data);
+    locations.forEach(loc => {
+      // 초기 데이터와 중복 방지
+      if (!guests.find(g => g.id === loc.id)) {
+        addGuestFromServer(loc);
+      }
+    });
+    if (locations.length > 0) fitAll();
+  });
+
+  // 카카오톡에서 새 손님 도착 (n8n → server.js → SSE push)
+  es.addEventListener('new-location', (e) => {
+    const loc = JSON.parse(e.data);
+    addGuestFromServer(loc);
+    map.flyTo([loc.lat, loc.lng], 9, { animate: true, duration: 1.2 });
+    showToast(`🚗 ${loc.name}님 도착! (${haversine(loc.lat, loc.lng, DESTINATION.lat, DESTINATION.lng).toFixed(1)}km)`);
+  });
+
+  // 초기화 이벤트
+  es.addEventListener('reset', () => {
+    guests.forEach(g => { if(g.marker) g.marker.remove(); });
+    guests = [];
+    polylines.forEach(p=>p.remove()); polylines=[];
+    renderGuestList();
+    const wb = document.getElementById('winner-banner');
+    wb.classList.add('hidden');
+  });
+
+  es.onerror = () => {
+    statusDot.style.background = '#FF85AD';
+    statusTxt.textContent = '재연결 중...';
+  };
+}
+
+// 서버에서 받은 데이터로 손님 추가 (지오코딩 불필요, 좌표 이미 있음)
+function addGuestFromServer(loc) {
+  const dist = haversine(loc.lat, loc.lng, DESTINATION.lat, DESTINATION.lng);
+  const marker = L.marker([loc.lat, loc.lng], {
+    icon: createCarIcon(loc.carType, loc.name),
+    zIndexOffset: 100
+  }).addTo(map);
+  guests.push({ ...loc, dist, marker, startLat: loc.lat, startLng: loc.lng });
+  renderGuestList();
+  updateWinner();
+}
+
+// 모달에서 직접 서버 API 호출 (테스트/관리자용)
+async function submitGuest() {
+  const name = document.getElementById('input-name').value.trim();
+  const addr = document.getElementById('input-addr').value.trim();
+  if(!name||!addr) return;
+
+  const btnTxt = document.getElementById('modal-btn-txt');
+  const errEl  = document.getElementById('modal-error');
+  btnTxt.textContent='🔍 서버에 전송 중...';
+  errEl.classList.add('hidden');
+
+  try {
+    const res = await fetch('/api/location', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, address: addr })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || '오류 발생');
+    closeModal();
+    // SSE로 자동 반영되므로 별도 addGuest 불필요
+  } catch(e) {
+    errEl.textContent = '❌ ' + e.message;
+    errEl.classList.remove('hidden');
+    btnTxt.textContent='✨ 추가하기';
+  }
+}
+
+// ── 시작 ─────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  initMap();
+  connectSSE();  // SSE 연결 시작
+
+  // Leaflet tooltip 스타일 (한국어 폰트)
+  const style=document.createElement('style');
+  style.textContent=`
+    .dest-tooltip { background:white !important; border:2px solid #FF85AD !important;
+                    border-radius:12px !important; color:#FF5B8A !important;
+                    box-shadow:0 4px 14px rgba(255,90,140,0.2) !important;
+                    font-size:13px !important; font-family:'Fredoka',sans-serif !important; }
+    .dest-tooltip::before { display:none !important; }
+    .leaflet-tooltip-top::before { border-top-color:#FF85AD !important; }
+  `;
+  document.head.appendChild(style);
+});
+</script>
+</body>
+</html>
